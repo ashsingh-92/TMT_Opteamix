@@ -543,7 +543,14 @@
       sync(); openMember(id);
     }
 
-    document.addEventListener('keydown', e=>{ if(e.key.toLowerCase()==='n') openNewMember(); })
+    document.addEventListener('keydown', e => {
+      // Only act on plain "n" key, not when typing in inputs, and only on the Grid panel
+      if ((e.key || '').toLowerCase() !== 'n') return;
+      const tag = (e.target && e.target.tagName ? e.target.tagName : '').toLowerCase();
+      if (['input','textarea','select'].includes(tag)) return;
+      if ($('#panel-grid').classList.contains('hidden')) return;
+      openNewMember();
+    })==='n') openNewMember(); })
 
     $('#threshold').addEventListener('input', e=>{ state.settings.threshold = +e.target.value; $('#threshold-label').textContent=e.target.value; sync(false); renderGrid(); renderPlans(); });
 
@@ -628,3 +635,4 @@
   </script>
 </body>
 </html>
+
