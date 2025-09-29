@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Talent Mapping Tool</title>
+  <style>
+    :root{
+      --bg:#0b1020;            /* deep blue-gray */
+      --panel:#11182d;         /* card background */
+      --muted:#7c86a2;         /* muted text */
+      --ink:#e8edff;           /* primary text */
+      --accent:#6ea8fe;        /* primary */
+      --accent-2:#7be0b8;      /* secondary */
+      --warn:#ffb86b;          /* warning */
+      --danger:#ff6b6b;        /* danger */
+      --ok:#7bf1a8;            /* success */
+      --grid:#2a3557;
+      --chip:#202a49;
+      --radius:16px;
+      --shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Ubuntu, Cantarell, Noto Sans, Arial;
+      color:var(--ink); background:linear-gradient(180deg, #0b1020 0%, #0e1530 100%);
+    }
+    a{color:var(--accent)}
+    .container{max-width:1200px; margin:0 auto; padding:24px}
+    .card{background:var(--panel); border-radius:var(--radius); box-shadow:var(--shadow);}
+    .hidden{display:none !important}
+
+    /* Header */
+    header{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 0}
+    .brand{display:flex; align-items:center; gap:12px}
+    .logo{width:42px; height:42px; display:grid; place-items:center; border-radius:12px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); font-weight:800; color:#0a1020}
+    .brand h1{font-size:20px; margin:0}
+    .user{display:flex; align-items:center; gap:8px; color:var(--muted)}
+    .btn{border:none; background:var(--accent); color:#071024; padding:10px 14px; border-radius:12px; font-weight:700; cursor:pointer}
+    .btn.secondary{background:#1b2544; color:var(--ink); border:1px solid #2b3761}
+    .btn.warning{background:var(--warn); color:#2a1900}
+    .btn.danger{background:var(--danger)}
+    .btn.ghost{background:transparent; border:1px solid #2b3761; color:var(--ink)}
+    .btn:disabled{opacity:.5; cursor:not-allowed}
+
+    /* Auth */
+    #auth{display:grid; place-items:center; min-height:100dvh; padding:24px}
+    #auth .login{width:min(480px, 100%); padding:24px; display:grid; gap:16px}
+    .field{display:grid; gap:6px}
+    label{font-size:14px; color:var(--muted)}
+    input, select, textarea{width:100%; padding:12px 14px; border-radius:12px; border:1px solid #2b3761; background:#0e1530; color:var(--ink)}
+
+    /* App shell */
+    #app{min-height:100dvh}
+    .nav{display:flex; gap:8px; flex-wrap:wrap; padding:8px}
+    .nav .tab{padding:10px 12px; border-radius:10px; cursor:pointer; color:var(--muted)}
+    .nav .tab.active{background:#1b2544; color:var(--ink); border:1px solid #2b3761}
+
+    /* Grid layout */
+    .grid{display:grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, minmax(220px, 1fr)); gap:12px;}
+    .quad{position:relative; border:1px dashed #2b3761; border-radius:16px; padding:12px; background:linear-gradient(180deg, rgba(46,58,98,.25), rgba(18,23,45,.25));}
+    .quad h3{margin:0 0 8px 0; font-size:14px; color:var(--muted)}
+    .drop{min-height:160px; display:flex; flex-wrap:wrap; align-content:flex-start; gap:8px}
+
+    .chip{background:var(--chip); border:1px solid #2b3761; border-radius:999px; padding:8px 12px; display:inline-flex; align-items:center; gap:8px; cursor:grab; user-select:none}
+    .chip .dot{width:8px; height:8px; border-radius:50%}
+    .chip .name{font-weight:600}
+    .chip .score{font-size:12px; color:var(--muted)}
+    .chip button{all:unset; cursor:pointer; padding:2px 6px; border-radius:8px; background:#1f2a4b}
+
+    .toolbar{display:flex; gap:8px; align-items:end; flex-wrap:wrap}
+
+    .two-col{display:grid; grid-template-columns: 1.2fr .8fr; gap:16px}
+    @media (max-width: 980px){ .two-col{grid-template-columns:1fr;}}
+
+    .table{width:100%; border-collapse:collapse}
+    .table th,.table td{padding:10px 12px; border-bottom:1px solid #2b3761; text-align:left}
+    .pill{padding:4px 8px; border-radius:999px; background:#1b2544; color:var(--ink); border:1px solid #2b3761; font-size:12px}
+
+    .kbd{border:1px solid #2b3761; background:#0f1733; padding:2px 6px; border-radius:6px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px}
+
+    .footer-note{color:var(--muted); font-size:12px}
+
+    dialog{border:none; border-radius:16px; padding:0; background:transparent}
+    .modal{background:var(--panel); border-radius:16px; min-width:min(720px, 92vw); padding:16px; box-shadow:var(--shadow)}
+    .modal header{padding:0 0 8px 0}
+
+    .banner{padding:12px 14px; border-radius:12px; background:#132046; border:1px solid #2b3761; color:var(--muted); font-size:14px}
+    .hint{font-size:12px; color:var(--muted)}
+  </style>
+</head>
+<body>
+  <!-- AUTH -->
+  <section id="auth">
+    <div class="card login">
+      <div class="brand" style="justify-content:center;">
+        <div class="logo">TM</div>
+        <h1>Talent Mapping — Sign in</h1>
+      </div>
+      <div class="banner">Demo login — no server required. Any non-empty email & password will work locally.</div>
+      <div class="field">
+        <label>Email</label>
+        <input id="login-email" placeholder="you@company.com" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
+        <div class="hint">By continuing you accept local storage of your data on this device.</div>
+        <button class="btn" id="login-btn">Sign in</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- APP -->
+  <section id="app" class="hidden">
+    <div class="container">
+      <header>
+        <div class="brand">
+          <div class="logo">TM</div>
+          <h1>Talent Mapping Tool</h1>
+          <span class="pill" id="dataset-badge">Local Dataset</span>
+        </div>
+        <div class="user">
+          <span id="whoami">—</span>
+          <button class="btn secondary" id="signout">Sign out</button>
+        </div>
+      </header>
+
+      <div class="card" style="padding:12px;">
+        <nav class="nav" id="tabs"></nav>
+      </div>
+
+      <!-- PANELS -->
+      <div id="panel-overview" class="card" style="margin-top:12px; padding:16px;">
+        <div class="two-col">
+          <article>
+            <h2 style="margin-top:0">Overview</h2>
+            <p>
+              This tool helps managers map team members on a simple 2×2 grid of <b>Talent</b> and <b>Effort</b>, then plan quarterly development actions and review progress.
+            </p>
+            <ul>
+              <li><b>Talent</b> ≈ knowledge & skills demonstrated in role.</li>
+              <li><b>Effort</b> ≈ attitude, initiative, and willingness to stretch.</li>
+            </ul>
+            <p>
+              Add people, rate them, and drag their chips between quadrants. Open a profile to capture 1–3 action points (e.g., coaching, mentoring, or training) and a follow‑up date.
+            </p>
+            <div class="banner" style="margin-top:8px;">
+              Tip: Press <span class="kbd">N</span> to add a new team member from anywhere.
+            </div>
+          </article>
+          <aside>
+            <div class="card" style="padding:12px;">
+              <h3 style="margin-top:0">Quick Add</h3>
+              <form id="quick-add" class="toolbar">
+                <div class="field" style="min-width:220px;">
+                  <label>Name</label>
+                  <input id="qa-name" placeholder="Jane Doe" />
+                </div>
+                <div class="field">
+                  <label>Talent</label>
+                  <input id="qa-talent" type="range" min="0" max="100" value="60" />
+                </div>
+                <div class="field">
+                  <label>Effort</label>
+                  <input id="qa-effort" type="range" min="0" max="100" value="70" />
+                </div>
+                <button class="btn" type="submit">Add</button>
+              </form>
+            </div>
+            <p class="hint" style="margin-top:8px">Scores ≥ 50 are considered "High" for grid placement. You can change this in Settings.</p>
+          </aside>
+        </div>
+      </div>
+
+      <div id="panel-grid" class="card hidden" style="margin-top:12px; padding:16px;">
+        <div style="display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:8px">
+          <div class="toolbar">
+            <button class="btn" id="add-member">New member</button>
+            <button class="btn secondary" id="bulk-import">Import CSV</button>
+            <button class="btn ghost" id="export-json">Export JSON</button>
+            <button class="btn ghost" id="export-csv">Export CSV</button>
+          </div>
+          <div class="toolbar">
+            <label class="pill">Threshold: <span id="threshold-label">50</span></label>
+            <input id="threshold" type="range" min="30" max="70" value="50" />
+          </div>
+        </div>
+        <div class="grid" id="te-grid">
+          <div class="quad" data-quad="HTHE">
+            <h3>High Talent · High Effort</h3>
+            <div class="drop" id="q-HTHE"></div>
+          </div>
+          <div class="quad" data-quad="LTHE">
+            <h3>Low Talent · High Effort</h3>
+            <div class="drop" id="q-LTHE"></div>
+          </div>
+          <div class="quad" data-quad="HTLE">
+            <h3>High Talent · Low Effort</h3>
+            <div class="drop" id="q-HTLE"></div>
+          </div>
+          <div class="quad" data-quad="LTLE">
+            <h3>Low Talent · Low Effort</h3>
+            <div class="drop" id="q-LTLE"></div>
+          </div>
+        </div>
+        <p class="hint" style="margin-top:8px">Drag chips between quadrants to update placement. Click a chip to open the profile & development plan.</p>
+      </div>
+
+      <div id="panel-plans" class="card hidden" style="margin-top:12px; padding:16px;">
+        <h2 style="margin:0 0 12px 0">Development Plans</h2>
+        <table class="table" id="plans-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Quadrant</th>
+              <th>Actions</th>
+              <th>Owner</th>
+              <th>Next Review</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="panel-settings" class="card hidden" style="margin-top:12px; padding:16px; display:grid; gap:12px;">
+        <h2 style="margin:0">Settings</h2>
+        <div class="two-col">
+          <div>
+            <div class="field">
+              <label>High/Low Threshold (%)</label>
+              <input id="s-threshold" type="number" min="0" max="100" value="50" />
+            </div>
+            <div class="field">
+              <label>Default Review Interval (days)</label>
+              <input id="s-review-days" type="number" min="7" max="120" value="90" />
+            </div>
+            <button class="btn" id="save-settings">Save Settings</button>
+          </div>
+          <div>
+            <div class="banner">Your data is saved in your browser (localStorage). Use Export to back it up or share.</div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button class="btn danger" id="reset-data">Delete All Data</button>
+              <button class="btn warning" id="seed-data">Load Sample Team</button>
+            </div>
+          </div>
+        </div>
+        <div class="footer-note">UI text paraphrases the Talent/Effort concepts and 4-quadrant mapping for internal enablement.</div>
+      </div>
+
+      <footer style="opacity:.85; margin:16px 0;" class="footer-note">
+        Built for quick talent mapping and IDPs · Client-side only · Made with HTML, CSS & JS
+      </footer>
+    </div>
+  </section>
+
+  <!-- MEMBER MODAL -->
+  <dialog id="member-modal">
+    <div class="modal">
+      <header style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <h3 id="m-name" style="margin:0">Member</h3>
+        <button class="btn ghost" id="m-close">Close</button>
+      </header>
+      <div class="two-col">
+        <div>
+          <div class="field">
+            <label>Talent (0–100)</label>
+            <input id="m-talent" type="range" min="0" max="100" />
+          </div>
+          <div class="field">
+            <label>Effort (0–100)</label>
+            <input id="m-effort" type="range" min="0" max="100" />
+          </div>
+          <div class="field">
+            <label>Notes</label>
+            <textarea id="m-notes" rows="4" placeholder="Context, performance highlights, coaching focus..."></textarea>
+          </div>
+        </div>
+        <div>
+          <h4 style="margin:0 0 6px 0">Development Actions (1–3)</h4>
+          <div id="m-actions" style="display:grid; gap:8px"></div>
+          <button class="btn secondary" id="add-action">Add Action</button>
+          <div class="field" style="margin-top:8px;">
+            <label>Next Review Date</label>
+            <input id="m-review" type="date" />
+          </div>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn" id="m-save">Save</button>
+            <button class="btn danger" id="m-delete">Remove Member</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <input type="file" id="file-input" class="hidden" accept=".csv,text/csv" />
+
+  <script>
+    // --- Utilities ---
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+    const uid = () => Math.random().toString(36).slice(2,9);
+
+    const store = {
+      load(){
+        const raw = localStorage.getItem('tm:data');
+        return raw ? JSON.parse(raw) : { settings:{threshold:50, reviewDays:90}, members:[] };
+      },
+      save(data){ localStorage.setItem('tm:data', JSON.stringify(data)); }
+    }
+
+    let state = store.load();
+    let session = { user:null };
+
+    // --- Auth ---
+    $('#login-btn').addEventListener('click', () => {
+      const email = $('#login-email').value.trim();
+      const pass = $('#login-pass').value.trim();
+      if(!email || !pass){ alert('Enter email and password'); return; }
+      session.user = { email };
+      sessionStorage.setItem('tm:session', JSON.stringify(session));
+      $('#whoami').textContent = email;
+      $('#auth').classList.add('hidden');
+      $('#app').classList.remove('hidden');
+      initApp();
+    });
+
+    $('#signout').addEventListener('click', () => {
+      sessionStorage.removeItem('tm:session');
+      location.reload();
+    });
+
+    // Restore session
+    (function(){
+      const s = sessionStorage.getItem('tm:session');
+      if(s){
+        session = JSON.parse(s);
+        $('#whoami').textContent = session.user.email;
+        $('#auth').classList.add('hidden');
+        $('#app').classList.remove('hidden');
+        initApp();
+      }
+    })();
+
+    // --- Tabs ---
+    const PANELS = [
+      { id:'panel-overview', label:'Overview'},
+      { id:'panel-grid', label:'Team Grid'},
+      { id:'panel-plans', label:'Development Plans'},
+      { id:'panel-settings', label:'Settings'}
+    ];
+
+    function renderTabs(activeId='panel-overview'){
+      const nav = $('#tabs');
+      nav.innerHTML = '';
+      PANELS.forEach(p => {
+        const el = document.createElement('div');
+        el.className = 'tab' + (p.id===activeId?' active':'');
+        el.textContent = p.label;
+        el.dataset.target = p.id;
+        el.addEventListener('click', () => showPanel(p.id));
+        nav.appendChild(el);
+      });
+      showPanel(activeId);
+    }
+
+    function showPanel(id){
+      PANELS.forEach(p => $('#'+p.id).classList.toggle('hidden', p.id!==id));
+      $$('.nav .tab').forEach(t => t.classList.toggle('active', t.dataset.target===id));
+    }
+
+    // --- Data helpers ---
+    function quadrantOf(talent, effort, threshold){
+      const H = v => v >= threshold;
+      const t = H(talent) ? 'H' : 'L';
+      const e = H(effort) ? 'H' : 'L';
+      return (t==='H' && e==='H') ? 'HTHE' :
+             (t==='H' && e==='L') ? 'HTLE' :
+             (t==='L' && e==='H') ? 'LTHE' : 'LTLE';
+    }
+
+    function quadrantLabel(key){
+      return {
+        HTHE:'High Talent · High Effort',
+        HTLE:'High Talent · Low Effort',
+        LTHE:'Low Talent · High Effort',
+        LTLE:'Low Talent · Low Effort'
+      }[key] || key;
+    }
+
+    function defaultActionsFor(q){
+      switch(q){
+        case 'HTHE': return ['Stretch assignment / lead initiative'];
+        case 'HTLE': return ['Engagement conversation; clarify expectations'];
+        case 'LTHE': return ['Skill coaching / mentoring plan'];
+        case 'LTLE': return ['Performance improvement conversation'];
+        default: return [];
+      }
+    }
+
+    // --- Rendering ---
+    function renderGrid(){
+      const thr = state.settings.threshold;
+      $('#threshold').value = thr;
+      $('#threshold-label').textContent = thr;
+      ['HTHE','HTLE','LTHE','LTLE'].forEach(q => $('#q-'+q).innerHTML='');
+      state.members.forEach(m => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.draggable = true;
+        chip.dataset.id = m.id;
+        chip.innerHTML = `
+          <span class="dot" style="background:${dotColor(m)}"></span>
+          <span class="name">${m.name}</span>
+          <span class="score">(${m.talent}|${m.effort})</span>
+          <button title="Open">↗</button>
+        `;
+        chip.addEventListener('dragstart', onDragStart);
+        chip.addEventListener('click', () => openMember(m.id));
+        const q = quadrantOf(m.talent, m.effort, thr);
+        $('#q-'+q).appendChild(chip);
+      });
+    }
+
+    function dotColor(m){
+      const q = quadrantOf(m.talent, m.effort, state.settings.threshold);
+      return { HTHE:'var(--ok)', HTLE:'var(--warn)', LTHE:'var(--accent-2)', LTLE:'var(--danger)' }[q];
+    }
+
+    function enableDrops(){
+      $$('.drop').forEach(drop => {
+        drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.outline='2px solid var(--accent)'; });
+        drop.addEventListener('dragleave', () => drop.style.outline='');
+        drop.addEventListener('drop', e => {
+          e.preventDefault(); drop.style.outline='';
+          const id = e.dataTransfer.getData('text/plain');
+          const m = state.members.find(x => x.id===id);
+          if(!m) return;
+          const q = drop.id.replace('q-','');
+          // Snap values based on quadrant
+          const tH = q==='HTHE' || q==='HTLE';
+          const eH = q==='HTHE' || q==='LTHE';
+          m.talent = tH ? Math.max(state.settings.threshold, m.talent) : Math.min(state.settings.threshold-1, m.talent);
+          m.effort  = eH ? Math.max(state.settings.threshold, m.effort)  : Math.min(state.settings.threshold-1, m.effort);
+          if(!m.actions || m.actions.length===0){ m.actions = defaultActionsFor(q).map(text=>({text, owner:'Manager'})); }
+          sync();
+        });
+      });
+    }
+
+    function onDragStart(e){ e.dataTransfer.setData('text/plain', e.target.dataset.id); }
+
+    function renderPlans(){
+      const tbody = $('#plans-table tbody');
+      tbody.innerHTML='';
+      state.members.forEach(m => {
+        const tr = document.createElement('tr');
+        const q = quadrantOf(m.talent, m.effort, state.settings.threshold);
+        tr.innerHTML = `
+          <td><button class="btn ghost" data-id="${m.id}">${m.name}</button></td>
+          <td>${quadrantLabel(q)}</td>
+          <td>${(m.actions||[]).map(a=>a.text).join('; ') || '<span class="hint">—</span>'}</td>
+          <td>${(m.actions||[])[0]?.owner||'—'}</td>
+          <td>${m.reviewDate||'—'}</td>
+        `;
+        tr.querySelector('button').addEventListener('click', () => openMember(m.id));
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --- Member modal ---
+    function openMember(id){
+      const m = state.members.find(x=>x.id===id);
+      if(!m) return;
+      $('#m-name').textContent = m.name;
+      $('#m-talent').value = m.talent;
+      $('#m-effort').value = m.effort;
+      $('#m-notes').value = m.notes||'';
+      $('#m-review').value = m.reviewDate||'';
+      $('#m-save').onclick = () => {
+        m.talent = +$('#m-talent').value; m.effort = +$('#m-effort').value; m.notes = $('#m-notes').value; m.reviewDate = $('#m-review').value;
+        m.actions = readActionsFromUI(); sync(); closeMember();
+      };
+      $('#m-delete').onclick = () => { if(confirm('Remove this member?')){ state.members = state.members.filter(x=>x.id!==id); sync(); closeMember(); }}
+      $('#add-action').onclick = () => addActionRow();
+      renderActionRows(m.actions||[]);
+      $('#member-modal').showModal();
+    }
+
+    function closeMember(){ $('#member-modal').close(); }
+    $('#m-close').addEventListener('click', closeMember);
+
+    function renderActionRows(actions){
+      const wrap = $('#m-actions');
+      wrap.innerHTML='';
+      actions.slice(0,3).forEach(a=> addActionRow(a.text, a.owner));
+      if(actions.length===0) addActionRow();
+    }
+
+    function addActionRow(text='', owner='Manager'){
+      const wrap = $('#m-actions');
+      const row = document.createElement('div');
+      row.style.display='grid'; row.style.gridTemplateColumns='1fr .6fr auto'; row.style.gap='8px';
+      row.innerHTML = `
+        <input placeholder="Action (e.g., Mentoring on X)" value="${text.replaceAll('"','&quot;')}" />
+        <select>
+          <option ${owner==='Manager'?'selected':''}>Manager</option>
+          <option ${owner==='Mentor'?'selected':''}>Mentor</option>
+          <option ${owner==='HR / L&D'?'selected':''}>HR / L&D</option>
+          <option ${owner==='Self'?'selected':''}>Self</option>
+        </select>
+        <button class="btn danger">✕</button>
+      `;
+      row.querySelector('button').addEventListener('click', ()=> row.remove());
+      wrap.appendChild(row);
+    }
+
+    function readActionsFromUI(){
+      return Array.from($('#m-actions').children).map(row => {
+        const [inp, sel] = row.querySelectorAll('input,select');
+        return { text: inp.value.trim(), owner: sel.value };
+      }).filter(a=>a.text).slice(0,3);
+    }
+
+    // --- Add & Import/Export ---
+    $('#quick-add').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const name = $('#qa-name').value.trim();
+      if(!name) return;
+      const talent = +$('#qa-talent').value, effort = +$('#qa-effort').value;
+      state.members.push({ id:uid(), name, talent, effort, actions: defaultActionsFor(quadrantOf(talent,effort,state.settings.threshold)).map(text=>({text, owner:'Manager'})) });
+      $('#qa-name').value='';
+      sync(); showPanel('panel-grid');
+    });
+
+    $('#add-member').addEventListener('click', ()=> openNewMember());
+    function openNewMember(){
+      const id = uid();
+      state.members.push({ id, name:'New Member', talent:50, effort:50, actions:[] });
+      sync(); openMember(id);
+    }
+
+    document.addEventListener('keydown', e=>{ if(e.key.toLowerCase()==='n') openNewMember(); })
+
+    $('#threshold').addEventListener('input', e=>{ state.settings.threshold = +e.target.value; $('#threshold-label').textContent=e.target.value; sync(false); renderGrid(); renderPlans(); });
+
+    // Export JSON
+    $('#export-json').addEventListener('click', ()=> download('talent-mapping.json', JSON.stringify(state, null, 2)) );
+
+    // Export CSV
+    $('#export-csv').addEventListener('click', ()=>{
+      const rows = [['name','talent','effort','quadrant','actions','owner','reviewDate']];
+      state.members.forEach(m=>{
+        const q = quadrantOf(m.talent, m.effort, state.settings.threshold);
+        rows.push([m.name, m.talent, m.effort, q, (m.actions||[]).map(a=>a.text).join('|'), (m.actions||[]).map(a=>a.owner).join('|'), m.reviewDate||'']);
+      });
+      const csv = rows.map(r=> r.map(x=>`"${(x??'').toString().replaceAll('"','""')}"`).join(',')).join('\n');
+      download('talent-mapping.csv', csv);
+    });
+
+    // Import CSV
+    $('#bulk-import').addEventListener('click', ()=> $('#file-input').click());
+    $('#file-input').addEventListener('change', async (e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      const header = lines.shift().split(',').map(h=>h.replaceAll('"','').trim().toLowerCase());
+      const idx = (k)=> header.indexOf(k);
+      lines.forEach(line=>{
+        const cols = line.match(/("(?:[^"]|"")*"|[^,]+)/g).map(c=>c.replace(/^"|"$/g,'').replaceAll('""','"'));
+        const name = cols[idx('name')]; if(!name) return;
+        const talent = +cols[idx('talent')]||0, effort = +cols[idx('effort')]||0;
+        const actions = (cols[idx('actions')]||'').split('|').filter(Boolean);
+        const owners = (cols[idx('owner')]||'').split('|');
+        const acts = actions.map((t,i)=>({text:t, owner: owners[i]||'Manager'}));
+        state.members.push({ id:uid(), name, talent, effort, actions:acts, reviewDate: cols[idx('reviewdate')]||'' });
+      });
+      sync(); renderTabs('panel-grid');
+      e.target.value='';
+    });
+
+    function download(filename, content){
+      const blob = new Blob([content], {type:'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // --- Settings & data ---
+    $('#save-settings').addEventListener('click', ()=>{
+      const t = +$('#s-threshold').value; const d = +$('#s-review-days').value;
+      if(t<0||t>100){ alert('Threshold must be 0–100'); return; }
+      state.settings.threshold = t; state.settings.reviewDays = d; sync(); renderGrid(); renderPlans();
+      alert('Settings saved');
+    });
+
+    $('#reset-data').addEventListener('click', ()=>{
+      if(confirm('Delete all local data?')){ state = { settings:{threshold:50, reviewDays:90}, members:[] }; sync(); renderTabs('panel-overview'); }
+    });
+
+    $('#seed-data').addEventListener('click', ()=>{
+      const sample = [
+        {name:'Aman Gupta', talent:82, effort:76},
+        {name:'Divya Nair', talent:74, effort:42},
+        {name:'Lakshmi Rao', talent:38, effort:71},
+        {name:'Rohit Mehta', talent:35, effort:33},
+        {name:'Sana Khan', talent:90, effort:88},
+      ];
+      sample.forEach(s=> state.members.push({ id:uid(), ...s, actions: defaultActionsFor(quadrantOf(s.talent,s.effort,state.settings.threshold)).map(text=>({text, owner:'Manager'})) }));
+      sync(); renderTabs('panel-grid');
+    });
+
+    function sync(render=true){ store.save(state); if(render){ renderGrid(); renderPlans(); } }
+
+    function initApp(){
+      renderTabs('panel-overview');
+      enableDrops();
+      // Settings panel initial fill
+      $('#s-threshold').value = state.settings.threshold;
+      $('#s-review-days').value = state.settings.reviewDays;
+      renderGrid();
+      renderPlans();
+    }
+  </script>
+</body>
+</html>
